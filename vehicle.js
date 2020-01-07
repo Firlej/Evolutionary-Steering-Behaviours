@@ -1,198 +1,145 @@
-var vehicles = [];
+class Vehicle extends Entity {
 
-var maxMult = 5;
-var maxPerc = 200;
+	constructor() {
+		super();
 
-var maxspeed = 3.5;
-var maxTurnForce = 0.15;
+		this.vel = vec(0, 1).setMag(Vehicle.MAX_SPEED).rotate(random(0, TWO_PI));
+		this.acc = vec(0, 0);
+		this.r = 6;
 
-function vehicleClass() {
-	this.pos = createVector(random(spawnBorder, width-spawnBorder), random(spawnBorder, height-spawnBorder));
-	this.vel = createVector(random(-2, 2), random(-2, 2));
-	this.acc = createVector();
-	this.r = 6;
+		this.health = 1;
 
-	this.fitness = 0;
-	this.dead = false;
-	this.health = 1;
-	this.thirst = 0;
-//random(0.3, 0.4);
+		this.fitness = 0;
 
-	this.dna = {
-		foodMult: random(-maxMult,maxMult),
-		foodPerc: random(0,maxPerc),
-		poisonMult: random(-maxMult,maxMult),
-		poisonPerc: random(0,maxPerc),
-		waterMult: random(-maxMult,maxMult),
-		waterPerc: random(0,maxPerc)
-	}
-	
-	this.eat = function(list, perception, lifeGain, thirstGain) {
-		var record = Infinity;
-		var closest = null;
-		for(var i=list.length-1; i>=0; i--) {
-			var d = this.pos.dist(list[i].pos);
-			if (d<this.r*2) {
-				list.splice(i, 1);
-				this.addHealth(lifeGain);
-				this.addThirst(thirstGain);
-			} else if (d<record && d<perception) { 
-				record=d;
-				closest = list[i].pos;
+		this.dna = {
+			MULT: {
+				[ID.FOOD]: random(-LIMIT.MULT, LIMIT.MULT),
+				[ID.POISON]: random(-LIMIT.MULT, LIMIT.MULT),
+			},
+			RADIUS: {
+				[ID.FOOD]: random(0, min(width, height) / 5),
+				[ID.POISON]: random(0, min(width, height) / 5),
 			}
 		}
-		if (closest!=null) {
-			return this.seek(closest);
-		}
-		return createVector(0, 0);
 	}
 
-	this.seek = function(target) {
-		var desired = p5.Vector.sub(target, this.pos);
-		
-		desired.setMag(maxspeed);
+	update() {
+		if (this.dead) {
+			return;
+		}
 
-		var steer = p5.Vector.sub(desired, this.vel);
-		steer.limit(maxTurnForce);
-		
+		this.boundaries();
+
+		this.vel.add(this.acc);
+		this.acc.mult(0);
+
+		this.vel.limit(Vehicle.MAX_SPEED);
+
+		this.pos.add(this.vel);
+
+		this.fitness++;
+
+		this.health -= 0.005;
+		if (this.health < 0) {
+			this.dead = true;
+		}
+		this.health = constrain(this.health, 0, 1);
+	}
+
+	seek(target) {
+		let desired = target.copy().sub(this.pos).setMag(Vehicle.MAX_SPEED);
+
+		let steer = desired.copy().sub(this.vel);
+
+		steer.limit(Vehicle.MAX_TURN_FORCE);
+
 		return steer;
 	}
 
-	this.behaviour = function(foodList, poisonList, waterList) {
-		var steer1 = this.eat(foodList, this.dna.foodPerc, 0.05, 0.01);
-		var steer2 = this.eat(poisonList, this.dna.poisonPerc, -0.34, -0.05);
-		var steer3 = this.eat(waterList, this.dna.waterPerc, 0, -0.05);
-
-		steer1.mult(this.dna.foodMult);
-		steer2.mult(this.dna.poisonMult);
-		steer3.mult(this.dna.waterMult);
-
-		this.acc.add(steer1);
-		this.acc.add(steer2);
-		this.acc.add(steer3);
-	}
-
-	this.boundaries = function() {
-		if (this.pos.x>width-spawnBorder || this.pos.x<spawnBorder) {
-			this.acc.add(this.seek(createVector(width/2, this.pos.y)));
+	boundaries() {
+		if (this.pos.x > BORDER.RIGHT || this.pos.x < BORDER.LEFT || this.pos.y > BORDER.BOTTOM || this.pos.y < BORDER.TOP) {
+			this.vel.mult(0);
+			this.acc.mult(0);
+			this.acc.add(this.seek(vec(width / 2, height / 2)).mult(1));
 		}
-		if (this.pos.y>height-spawnBorder || this.pos.y<spawnBorder) {
-			this.acc.add(this.seek(createVector(this.pos.x, height/2)));
+	}
+
+	collideWithEntities(Entities) {
+		for (const e of Entities) {
+			let dsq = distSq(e.pos.x, e.pos.y, this.pos.x, this.pos.y);
+			if (!e.dead && dsq < pow(this.r + e.r, 2)) {
+				e.dead = true;
+				this.health += Entities.healing_factor;
+			}
 		}
-
-		
 	}
 
-	this.update = function() {
-		if (this.dead==true) { return; }
+	interactWithEntities(Entities) {
+		let bestVal = Infinity;
+		let bestEntity = false;
 
-		this.boundaries();
-		this.vel.add(this.acc);
-		this.vel.limit(maxspeed);
-		this.pos.add(this.vel);
-
-		this.acc.mult(0);
-
-		this.addThirst(0.002);
-		this.addHealth(-this.thirst/100);
-		this.fitness++;
+		for (const e of Entities) {
+			let dsq = distSq(e.pos.x, e.pos.y, this.pos.x, this.pos.y);
+			// todo check if in range
+			if (dsq < bestVal) {
+				bestVal = dsq;
+				bestEntity = e;
+			}
+		}
+		this.acc.add(this.seek(bestEntity.pos).mult(this.dna.MULT[Entities.ID]));
 	}
 
-	this.addHealth = function(amount) {
-		this.health+=amount;
-		if (this.health>1) { this.health=1; }
-	}
-	this.addThirst = function(amount) {
-		this.thirst+=amount;
-		if (this.thirst>1) { this.thirst=1; }
-		else if (this.thirst<0) { this.thirst=0; }
-	}
+	draw() {
+		push();
 
-	this.limit = function() {
-		if(this.dna.foodMult>maxMult) { this.dna.foodMult=maxMult; }
-		else if(this.dna.foodMult<-maxMult) { this.dna.foodMult=-maxMult; }
-		if(this.dna.foodPerc>maxPerc) { this.dna.foodPerc=maxPerc; }
+		translate(this.pos.x, this.pos.y);
 
-		if(this.dna.poisonMult>maxMult) { this.dna.poisonMult=maxMult; }
-		else if(this.dna.poisonMult<-maxMult) { this.dna.poisonMult=-maxMult; }
-		if(this.dna.poisonPerc>maxPerc) { this.dna.poisonPerc=maxPerc; }
-	}
+		rotate(this.vel.heading() + PI / 2);
 
-	this.draw = function() {
-		//if (this.dead==true) { return; }
-		if (this.pos.x>width || this.pos.x<0 || this.pos.y>height || this.pos.y<0) { return; }
+		fill(lerpColor("#FF0000", "#00FF00", this.health));
 
-		var gr = color(0, 255, 0);
-		var rd = color(255, 0, 0);
-		var col = lerpColor(rd, gr, this.health);
+		beginShape();
+		vertex(0, -this.r * 2);
+		vertex(-this.r, this.r * 2);
+		vertex(this.r, this.r * 2);
+		endShape();
 
-	    push();
-		    translate(this.pos.x,this.pos.y);
-
-		    if(drawPerception==true && this.dead==false) {
-		    	noFill(); 
-		    	stroke(0, 255, 0, 80);
-			    ellipse(0, 0, this.dna.foodPerc*2, this.dna.foodPerc*2);
-			    stroke(255, 0, 0, 80);
-			    ellipse(0, 0, this.dna.poisonPerc*2, this.dna.poisonPerc*2);
-			    stroke(0, 0, 255, 80);
-			    ellipse(0, 0, this.dna.waterPerc*2, this.dna.waterPerc*2);
-		    }
-
-		    rotate(this.vel.heading()+PI/2);
-
-			fill(col); stroke(col);
-		    beginShape();
-			    vertex(0, -this.r*2);
-			    vertex(-this.r, this.r*2);
-			    vertex(this.r, this.r*2);
-		    endShape(CLOSE);
-	    pop();
-	}
-}
-
-function addVehicles(n) { 
-	for(var i=0; i<n; i++) {
-		addVehicle();
-	}
-}
-function addVehicle(){
-	var vehicle = new vehicleClass();
-	vehicles.push(vehicle);
-	return vehicle;
-}
-function drawVehicles() {
-	stroke(200);
-	strokeWeight(2);
-	for(var i=0; i<vehicles.length; i++) {
-		vehicles[i].draw();
-	}
-}
-function updateVehicles() {
-	//var factors = [foods, poisons];
-
-	for(var i=0; i<vehicles.length; i++) {
-		vehicles[i].behaviour(foods, poisons, waters);
-		vehicles[i].update();
-	}
-
-	killVehicles();
-}
-function killVehicles() {
-	for(var i=vehicles.length-1; i>=0; i--) {
-		var v = vehicles[i];
-		if (v.health<=0) {
-			v.dead = true;
-			//vehicles.splice(i, 1);
+		if (drawPerception && !this.dead) {
+			fill(rgba(0, 0, 0, 0));
+			stroke(0, 255, 0, 80);
+			ellipse(0, 0, this.dna.foodPerc * 2, this.dna.foodPerc * 2);
+			stroke(255, 0, 0, 80);
+			ellipse(0, 0, this.dna.poisonPerc * 2, this.dna.poisonPerc * 2);
+			stroke(0, 0, 255, 80);
+			ellipse(0, 0, this.dna.waterPerc * 2, this.dna.waterPerc * 2);
 		}
 
+		pop();
 	}
-}
-function countAlive() {
-	var count = 0;
-	for(var i=0; i<vehicles.length; i++) {
-		if (vehicles[i].dead==false) { count++; }
-	}
-	return count;
 }
 
+Vehicle.MAX_SPEED = 3.5;
+Vehicle.MAX_TURN_FORCE = 0.15;
+
+VEHICLES.alive = function () {
+	var n = 0;
+	for (var i = 0; i < this.length; i++) {
+		if (!this[i].dead) {
+			n++;
+		}
+	}
+	return n;
+}
+
+VEHICLES.update = ENTITIES.update;
+
+VEHICLES.draw = ENTITIES.draw;
+
+VEHICLES.add = function (n = 1) {
+	for (var i = 0; i < n; i++) {
+		this.push(new Vehicle());
+	}
+	if (n == 1) {
+		return this.last();
+	}
+}
