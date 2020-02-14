@@ -16,20 +16,7 @@ class Vehicle extends Entity {
 
 		this.seeking = true;
 
-		this.dna = {
-			MULT: {
-				[ID.FOOD]: random(-LIMIT.MULT, LIMIT.MULT),
-				[ID.POISON]: random(-LIMIT.MULT, LIMIT.MULT),
-			},
-			RADIUS: {
-				[ID.FOOD]: random(0, min(width, height) / 5),
-				[ID.POISON]: random(0, min(width, height) / 5),
-			},
-			POW: {
-				[ID.FOOD]: random(-5, 5),
-				[ID.POISON]: random(-5, 5),
-			}
-		}
+		this.dna = random_dna();
 	}
 
 	reset_dna() {
@@ -65,8 +52,6 @@ class Vehicle extends Entity {
 			this.acc.add(this.seek(this.target));
 		}
 
-		line(0, 0, this.acc.x * 1000, this.acc.y * 1000);
-
 		this.acc.setMag(this.vel.mag() / 10);
 		this.vel.add(this.acc);
 		this.acc.mult(0);
@@ -89,11 +74,7 @@ class Vehicle extends Entity {
 
 	seek(target) {
 		let desired = target.copy().sub(this.pos).setMag(Vehicle.MAX_SPEED);
-
 		let steer = desired.copy().sub(this.vel);
-
-		// steer.limit(Vehicle.MAX_TURN_FORCE);
-
 		return steer;
 	}
 
@@ -145,7 +126,6 @@ class Vehicle extends Entity {
 			ellipse(0, 0, this.dna.RADIUS[FOODS.ID]);
 			stroke(rgba(255, 0, 0, 0.8));
 			ellipse(0, 0, this.dna.RADIUS[POISONS.ID]);
-			stroke(rgba(0, 0, 255, 0.8));
 		}
 
 		pop();
@@ -157,7 +137,6 @@ class Vehicle extends Entity {
 }
 
 Vehicle.MAX_SPEED = 3.5;
-Vehicle.MAX_TURN_FORCE = 0.05;
 
 VEHICLES.alive = function () {
 	var n = 0;

@@ -34,7 +34,7 @@ const HEALTH_PENALTY_EACH_FRAME = 0.005;
 
 let MUTATION_RATE = 0.1;
 
-let iterations_per_frame = 1000;
+let iterations_per_frame = 1;
 
 let best_fitness = 0;
 let best_vehicle;
