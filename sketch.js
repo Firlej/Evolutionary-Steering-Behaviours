@@ -1,5 +1,5 @@
 function setup(callback) {
-	resizeCanvas(windowWidth, windowHeight);
+	resizeCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
 	setVariables();
 
 	background(rgb(50, 50, 50));
@@ -8,17 +8,30 @@ function setup(callback) {
 
 	resetResources();
 
+	noStroke();
+
+	// VEHICLES[0].dna.MULT[FOODS.ID] = 3;
+	// VEHICLES[0].dna.MULT[POISONS.ID] = -3;
+
+	// VEHICLES[0].dna.RADIUS[FOODS.ID] = 300;
+	// VEHICLES[0].dna.RADIUS[POISONS.ID] = 30;
+
+	// VEHICLES[0].dna.POW[FOODS.ID] = 3;
+	// VEHICLES[0].dna.POW[POISONS.ID] = 1;
+	// VEHICLES[0].fitness = 0;
+
 	callback();
 }
 
 function draw() {
+
+	if (stop) {
+		return;
+	}
+
 	background(rgb(50, 50, 50));
 
 	drawInfo();
-
-	resupplyResources(0);
-
-	VEHICLES.update();
 	VEHICLES.draw();
 
 	fill(rgba(0, 255, 0, 0.7));
@@ -26,18 +39,31 @@ function draw() {
 	fill(rgba(255, 0, 0, 0.7));
 	POISONS.draw();
 
-	VEHICLES.forEach((vehicle) => {
-		vehicle.collideWithEntities(FOODS);
-		vehicle.collideWithEntities(POISONS);
-	});
+	for (let i = 0; i < iterations_per_frame; i++) {
 
-	VEHICLES.forEach((vehicle) => {
-		vehicle.interactWithEntities(FOODS);
-		vehicle.interactWithEntities(POISONS);
-	});
+		resupplyResources();
 
-	FOODS.remove();
-	POISONS.remove();
+		VEHICLES.forEach((vehicle) => {
+			vehicle.collideWithEntities(FOODS);
+			vehicle.collideWithEntities(POISONS);
+		});
+
+		VEHICLES.update();
+
+		VEHICLES.forEach((vehicle) => {
+			vehicle.interactWithEntities(FOODS);
+			vehicle.interactWithEntities(POISONS);
+		});
+
+		FOODS.remove();
+		POISONS.remove();
+
+		populate();
+
+		if (VEHICLES.alive() == 0) {
+			break;
+		}
+	}
 }
 
 function mousePressed() {
@@ -46,63 +72,79 @@ function mousePressed() {
 
 function keyPressed() {
 	if (keyCode === 32) {
-		noLoop();
+		stop = !stop;
 	}
 }
 
-// function populate() {
-// 	var tickets = [];
-// 	if (countAlive()<=0) {
+let stop = false;
 
-// 		var oldPopulation = vehicles.slice(0);
-// 		vehicles = [];
+let best_vehicles = [];
 
-// 		for(var i=0; i<oldPopulation.length; i++) {
-// 			var v=oldPopulation[i];
-// 			for (var j=0; j<(v.fitness); j++) { tickets.push(i); }
-// 		}
-// 		console.log(tickets.length);
+function populate() {
 
-// 		for(var i=0; i<vehiclesAmount; i++) {
-// 			var v = addVehicle();
-// 			if (random()>mutationRate) { v.dna.foodMult = randomParent().dna.foodMult; }
-// 			if (random()>mutationRate) { v.dna.foodPerc = randomParent().dna.foodPerc; }
-// 			if (random()>mutationRate) { v.dna.poisonMult = randomParent().dna.poisonMult; }
-// 			if (random()>mutationRate) { v.dna.poisonPerc = randomParent().dna.poisonPerc; }
-// 			if (random()>mutationRate) { v.dna.waterMult = randomParent().dna.waterMult; }
-// 			if (random()>mutationRate) { v.dna.waterPerc = randomParent().dna.waterPerc; }
-// 			v.limit();
-// 		}
-// 		resetResources();
-// 	}
-// 	function randomParent() {
-// 		var j = tickets[floor(random(tickets.length))]
-// 		return oldPopulation[j];
-// 	}
-// }
+	if (VEHICLES.alive() == 0) {
+
+		let fitness_sum = 0;
+		let pre = [];
+		for (let i = 0; i < VEHICLES.length; i++) {
+			fitness_sum += floor(sqrt(VEHICLES[i].fitness));
+			pre.push(fitness_sum);
+			if (VEHICLES[i].fitness > best_fitness) {
+				best_fitness = VEHICLES[i].fitness;
+				best_vehicle = VEHICLES[i];
+				best_vehicles.push(best_vehicle);
+				console.log(best_vehicles.last());
+			}
+		}
+
+		OLD_VEHICLES.length = 0;
+		OLD_VEHICLES.push(...VEHICLES.splice(0));
+		VEHICLES.length = 0;
+
+		let randomParent = () => {
+			let n = floor(random(0, fitness_sum));
+			let index = 0;
+			while (n > pre[index]) {
+				index++;
+			}
+			return OLD_VEHICLES[index];
+		}
+
+		for (let i = 0; i < VEHICLES.amount; i++) {
+			let v = VEHICLES.add(1);
+			for (a in v.dna) {
+				for (b in v.dna[a]) {
+					v.dna[a][b] = randomParent().dna[a][b];
+				}
+			}
+			v.mutate();
+		}
+
+		resetResources();
+	}
+}
 
 function drawInfo() {
 	font("50px Arial");
 	fill(rgb(0, 102, 153));
-	text(VEHICLES.alive(), 10, 50);
 
-	// var w = width/vehiclesAlive;
-	// var h = 15;
-	// var ii=0;
-	// for(var i=0; i<vehicles.length; i++) {
-	// 	var v = vehicles[i];
-	// 	if (v.dead==false) {
-	// 		var health = map(v.health, 0, 1, 0, w);
-	// 		var thirst = map(v.thirst, 0, 1, 0, w);
+	let count = VEHICLES.alive();
 
-	// 		fill(0,255,0, 50); 	rect(ii*w, (height-3*h), w*0.95, h);
-	// 		fill(0,255,0); 		rect(ii*w, (height-3*h), health*0.95, h);
-	// 		fill(0,0,255, 50);	rect(ii*w, (height-1.5*h), w*0.95, h);
-	// 		fill(0,0,255);	rect(ii*w, (height-1.5*h), thirst*0.95, h);
-	// 		ii++;
-	// 	}
+	textAlign('left');
+	text(count, 10, 50);
+	textAlign('right');
+	text(best_fitness, BORDER.RIGHT - 10, 50);
 
-	// }
+	var h = height / VEHICLES.length;
+
+	for (var i = 0; i < VEHICLES.length; i++) {
+		var v = VEHICLES[i];
+
+		fill(rgba(0, 255, 0, 0.5));
+		rect(BORDER.RIGHT, i * height / VEHICLES.length, BORDER.LEFT, h);
+		fill(rgba(0, 255, 0, 1));
+		rect(BORDER.RIGHT, i * height / VEHICLES.length, BORDER.LEFT * v.health, h);
+	}
 }
 
 function resetResources() {

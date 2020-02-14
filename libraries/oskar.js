@@ -35,7 +35,7 @@ const KEY = {
 function setup() {}
 
 window.onload = function () {
-    
+
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -137,19 +137,29 @@ function randomRgb() {
 function fill(color) {
     ctx.fillStyle = color;
 }
-
-function ellipse(x, y, r) {
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2, true);
-    ctx.fill();
+function noFill() {
+    ctx.fillStyle = "rgba(0, 0, 0, 0)";
 }
 
-// function ellipse(x, y, rx, ry = rx) {
-//     ctx.beginPath();
-//     // ctx.arc(x, y, r, 0, Math.PI * 2, true);
-//     ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
-//     ctx.stroke();
-// }
+function stroke(color) {
+    ctx.strokeStyle = color;
+}
+
+function strokeStyle(color) {
+    ctx.strokeStyle = color;
+}
+
+function noStroke() {
+    ctx.strokeStyle = "rgba(0, 0, 0, 0)";
+}
+
+function ellipse(x, y, rx, ry = rx) {
+    ctx.beginPath();
+    // ctx.arc(x, y, r, 0, Math.PI * 2, true);
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+}
 
 function rect(x, y, width, height) {
     ctx.fillRect(x, y, width, height);
@@ -172,6 +182,44 @@ function line(x1, y1, x2, y2) {
 
 function globalAlpha(a = 1) {
     ctx.globalAlpha = a;
+}
+
+function push() {
+    ctx.save()
+};
+
+function rotate(a) {
+    ctx.rotate(a);
+}
+
+function translate(x, y) {
+    ctx.translate(x, y);
+}
+
+function pop() {
+    ctx.restore();
+}
+
+function beginShape() {
+    ctx.beginPath();
+}
+
+function vertex(x, y) {
+    ctx.lineTo(x, y);
+}
+
+function endShape() {
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+}
+
+let loadPixels = () => {
+    return ctx.getImageData(0, 0, width, height);
+}
+
+let setPixels = (imageData) => {
+    ctx.putImageData(imageData, 0, 0);
 }
 
 function rgb(r, g, b) {
@@ -348,52 +396,6 @@ Array.prototype.first = function () {
 }
 Array.prototype.last = function () {
     return this[this.length - 1];
-}
-
-function push() {
-    ctx.save()
-};
-
-function rotate(a) {
-    ctx.rotate(a);
-}
-
-function translate(x, y) {
-    ctx.translate(x, y);
-}
-
-function pop() {
-    ctx.restore();
-}
-
-function beginShape() {
-    ctx.beginPath();
-}
-
-function vertex(x, y) {
-    ctx.lineTo(x, y);
-}
-
-function endShape() {
-    ctx.closePath();
-    ctx.stroke();
-    ctx.fill();
-}
-
-function stroke(color) {
-    ctx.strokeStyle = color;
-}
-
-function noStroke() {
-    ctx.strokeStyle = "rgba(0, 0, 0, 0)";
-}
-
-let loadPixels = () => {
-    return ctx.getImageData(0, 0, width, height);
-}
-
-let setPixels = (imageData) => {
-    ctx.putImageData(imageData, 0, 0);
 }
 
 function isContained(x, y, x1, y1, x2, y2) {
