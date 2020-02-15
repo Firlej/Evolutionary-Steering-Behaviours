@@ -39,6 +39,8 @@ let iterations_per_frame = 1;
 let best_fitness = 0;
 let best_vehicle;
 
+let MAX_SPEED = 3.5;
+
 const border_ratio = 0.05;
 let BORDER;
 

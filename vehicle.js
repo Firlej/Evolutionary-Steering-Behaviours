@@ -4,7 +4,7 @@ class Vehicle extends Entity {
 		super();
 		this.id = -1;
 
-		this.vel = vec(0, 1).setMag(Vehicle.MAX_SPEED).rotate(random(0, TWO_PI));
+		this.vel = vec(0, 1).setMag(MAX_SPEED).rotate(random(0, TWO_PI));
 		this.acc = vec(0, 0);
 		this.r = 6;
 
@@ -56,7 +56,7 @@ class Vehicle extends Entity {
 		this.vel.add(this.acc);
 		this.acc.mult(0);
 
-		this.vel.limit(Vehicle.MAX_SPEED);
+		this.vel.limit(MAX_SPEED);
 
 		this.pos.add(this.vel);
 
@@ -73,9 +73,7 @@ class Vehicle extends Entity {
 	}
 
 	seek(target) {
-		let desired = target.copy().sub(this.pos).setMag(Vehicle.MAX_SPEED);
-		let steer = desired.copy().sub(this.vel);
-		return steer;
+		return target.copy().sub(this.pos).setMag(MAX_SPEED).sub(this.vel);
 	}
 
 	collideWithEntities(Entities) {
@@ -91,9 +89,7 @@ class Vehicle extends Entity {
 	}
 
 	interactWithEntities(Entities) {
-
 		let sum = vec(0, 0);
-
 		for (const e of Entities) {
 			let ds = distSq(e.pos.x, e.pos.y, this.pos.x, this.pos.y);
 			if (ds < pow(this.dna.RADIUS[Entities.ID], 2)) {
@@ -135,8 +131,6 @@ class Vehicle extends Entity {
 		ellipse(this.target.x, this.target.y, 7);
 	}
 }
-
-Vehicle.MAX_SPEED = 3.5;
 
 VEHICLES.alive = function () {
 	var n = 0;
