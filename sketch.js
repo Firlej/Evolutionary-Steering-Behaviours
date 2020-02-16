@@ -25,19 +25,34 @@ function setup(callback) {
 
 function draw() {
 
-	if (stop) {
-		return;
-	}
-
 	background(rgb(50, 50, 50));
 
+	drawChart();
+
 	drawInfo();
+
+	noStroke();
+
 	VEHICLES.draw();
 
 	fill(rgba(0, 255, 0, 0.7));
 	FOODS.draw();
 	fill(rgba(255, 0, 0, 0.7));
 	POISONS.draw();
+
+	if (drawVectors) {
+		lineWidth(2)
+		VEHICLES.forEach((vehicle) => {
+			stroke(rgba(0, 255, 0, 0.4));
+			vehicle.drawVecotrs(FOODS);
+			stroke(rgba(255, 0, 0, 0.4));
+			vehicle.drawVecotrs(POISONS);
+		});
+	}
+
+	if (stop) {
+		return;
+	}
 
 	for (let i = 0; i < iterations_per_frame; i++) {
 
@@ -73,12 +88,11 @@ function mousePressed() {
 function keyPressed() {
 	if (keyCode === 32) {
 		stop = !stop;
+	} else if (keyCode == 98) {
+		drawVectors = !drawVectors;
 	}
 }
 
-let stop = false;
-
-let best_vehicles = [];
 
 function populate() {
 
@@ -121,6 +135,7 @@ function populate() {
 		}
 
 		resetResources();
+		pop_count++;
 	}
 }
 
@@ -161,4 +176,20 @@ function resupplyResources() {
 	if (POISONS.length < POISONS.amount) {
 		POISONS.add(POISONS.amount - POISONS.length);
 	}
+}
+
+function drawChart() {
+	stroke(rgba(255, 255, 255, 0.7));
+	lineWidth(2);
+	beginShape();
+	ctx.moveTo(0, height);
+	let x, y;
+	for (let i = 0; i < best_vehicles.length; i++) {
+		x = map(best_vehicles[i].id, 0, next_vehicle_id, 0, width);
+		y = map(best_vehicles[i].fitness, 0, best_fitness + 1, height * 0.95, height * 0.05);
+		vertex(x, y);
+	}
+	vertex(width, y);
+	vertex(width, height);
+	endShape();
 }

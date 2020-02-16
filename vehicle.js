@@ -29,6 +29,7 @@ class Vehicle extends Entity {
 				if (random(0, 1) < MUTATION_RATE) {
 					this.dna[a][b] += random(-0.5, 0.5);
 					if (a == "RADIUS") {
+						this.dna[a][b] += random(-5, 5);
 						this.dna[a][b] = max(0, this.dna[a][b]);
 					}
 					if (random(0, 1) < MUTATION_RATE) {
@@ -100,6 +101,29 @@ class Vehicle extends Entity {
 		this.acc.add(sum);
 	}
 
+	drawVecotrs(Entities) {
+		if (this.dead) return;
+		let max_dist = 0;
+		for (const e of Entities) {
+			let ds = distSq(e.pos.x, e.pos.y, this.pos.x, this.pos.y);
+			if (ds < pow(this.dna.RADIUS[Entities.ID], 2)) {
+				max_dist = max(dist(e.pos.x, e.pos.y, this.pos.x, this.pos.y), max_dist);
+			}
+		}
+		for (const e of Entities) {
+			let ds = distSq(e.pos.x, e.pos.y, this.pos.x, this.pos.y);
+			let d = sqrt(ds);
+			if (ds < pow(this.dna.RADIUS[Entities.ID], 2)) {
+				push();
+				translate(this.pos.x, this.pos.y);
+				let v = e.pos.copy().sub(this.pos).setMag(10).mult(this.dna.MULT[Entities.ID]).div(d / max_dist).mult(1);
+				line(0, 0, v.x, v.y);
+				pop();
+
+			}
+		}
+	}
+
 	draw() {
 		push();
 
@@ -118,6 +142,7 @@ class Vehicle extends Entity {
 		noFill();
 
 		if (drawPerception && !this.dead) {
+			lineWidth(1);
 			stroke(rgba(0, 255, 0, 0.8));
 			ellipse(0, 0, this.dna.RADIUS[FOODS.ID]);
 			stroke(rgba(255, 0, 0, 0.8));

@@ -3,7 +3,9 @@ const LIMIT = {
     RADIUS: 200,
 }
 
+let stop = false;
 let drawPerception = true;
+let drawVectors = false;
 
 const ID = {
     FOOD: 0,
@@ -12,6 +14,9 @@ const ID = {
 
 let population;
 let previous_population;
+
+let best_vehicles = [];
+let pop_count = 0;
 
 const ENTITIES = [];
 
